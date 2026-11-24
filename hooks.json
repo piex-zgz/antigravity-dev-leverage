@@ -1,0 +1,43 @@
+{
+  "dev-leverage-session-context": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python3 ./hooks/session_start.py",
+        "timeout": 15
+      }
+    ]
+  },
+  "dev-leverage-loop-anchor-hint": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python3 ./hooks/loop_anchor_hint.py",
+        "timeout": 5
+      }
+    ]
+  },
+  "dev-leverage-codex-exec-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./hooks/codex_exec_guard.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "dev-leverage-stop-gate": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python3 ./hooks/stop_gate.py",
+        "timeout": 15
+      }
+    ]
+  }
+}

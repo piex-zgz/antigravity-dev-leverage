@@ -1,0 +1,40 @@
+---
+name: rsi-retro
+description: >-
+  Run a concise post-task Recursive Self-Improvement (RSI) retrospective to
+  capture recurring errors, dead ends, missing context, and durable upgrades
+  for repository rules, skills, or decision logs—filtering out perishable
+  model crutches.
+---
+
+# RSI Retro
+
+让高代价返工沉淀为下次不再踩坑的确定性资产，而不是把最后 30 分钟的琐事塞进文档交作业。
+
+## 执行步骤
+
+### 1. 先选对调查主体（禁止在已压缩长会话里凭记忆自审）
+- **未压缩短任务（`G == 0` 且无重大返工）**：直接基于本轮 `git diff` 与 `.system_generated/logs/transcript_full.jsonl`（若无则回退 `transcript.jsonl`）做轻量复盘。
+- **已压缩会话（`G >= 1`）或重大多阶段任务**：**禁止主代理凭记忆自审**——直接委派零历史只读子代理（如 `drift-watcher`，`Model="inherit"`），把原始指针（`transcript_full.jsonl` 路径、目标仓库路径、基线或提交区间）交给它，独立核查原始失败记录、`git log --numstat`、审稿结论与 Hook/任务日志，不另导 `handoff.md`。
+
+### 2. 先审旧债，再追真因（既有规则一票否决）
+不要预设“踩坑 = 少写了一条文档规矩”，对每个反复出现的痛点必须先做两步核对：
+1. **核查既有措施**：先查仓库 `AGENTS.md`、测试、Hook 与前序 RSI 措施是否**本来就覆盖过同类问题**。
+2. **一票否决软规则叠加**：如果同类规则早已存在却仍被绕过或失效，**严禁再往 `AGENTS.md` / Skill 叠加同类文字**——必须追查真正失效原因（激励偏差/旧测试重力、主代理隐报、反馈环误报脱敏、合成单测假绿或缺少确定性程序），并优先**修复或退役**失效旧措施。
+
+### 3. 确定性落点优先与宁缺毋滥（禁止凑数）
+- **优先顺序**：项目确定性程序/真实样本测试（留在业务仓库） > 项目核心边界与高代价死胡同 > 全局插件机制（`~/.gemini/config/plugins/dev-leverage/`，仅跨项目反复成立才入） > 个人习惯（提示用原生 `/learn`）。
+- **排除保洁凑数**：`README` 同步、`.gitignore`、排版修正等日常保洁**不计入核心 RSI 提案**（如需顺手处理，单独 1 行附注在表外）。
+- **允许 0~1 条**：没有真正可固化的结构性升级时，如实说明并输出 `0~1` 条，严禁为了填满表格硬凑 3~5 条。
+
+### 4. 先提案、确认后再写入
+
+```markdown
+## RSI 回流提案
+
+| 序号 | 一手事实痛点（附路径/提交/行号） | 已有同类规则/Hook 及失效原因 | 动作（改代码 / 删旧 / 改边界） | 目标文件与最小改动 |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | <实证痛点> | `无` 或 `<path:line> → 为何失效` | 改代码 / 删旧 / 改边界 | `<目标路径>`：<1~2 句精确改动> |
+```
+
+- **未经用户明确确认，不修改仓库 `AGENTS.md`、决策日志或全局插件文件**。确认后再做最小精确修改并验证。

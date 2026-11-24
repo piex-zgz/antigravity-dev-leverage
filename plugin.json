@@ -1,0 +1,18 @@
+{
+  "name": "dev-leverage",
+  "displayName": "Dev Leverage",
+  "version": "0.4.0",
+  "description": "High-leverage engineering harness for Antigravity: explore-first anti-concrete protocol, scoped diff baselines with surface risk summaries, incremental context health & deterministic handoffs, Gate verification, walkthroughs, loop anchoring, and zero-history empirical/entropy review subagents.",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "piex-zgz",
+    "url": "https://github.com/piex-zgz"
+  },
+  "homepage": "https://github.com/piex-zgz/antigravity-dev-leverage",
+  "repository": "https://github.com/piex-zgz/antigravity-dev-leverage",
+  "suggestedPrompts": [
+    "用 explore-first 对陌生任务先做只读地形测绘和可抛弃细管验证",
+    "用 gate-verify 对本轮改动做基线验收并输出 1 分钟证据卡",
+    "用 rsi-retro 复盘这次任务，把可复用经验回流到项目确定性门禁或规则"
+  ]
+}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <!-- Subtle outer frame (~12% margin) -->
+  <rect x="16" y="16" width="96" height="96" rx="22" stroke="#64748B" stroke-opacity="0.3" stroke-width="5"/>
+  <!-- Fulcrum triangle -->
+  <polygon points="64,74 50,96 78,96" fill="#0EA5E9"/>
+  <!-- Lever beam (tilted upward on right to convey leverage) -->
+  <line x1="28" y1="80" x2="100" y2="52" stroke="#22C55E" stroke-width="8" stroke-linecap="round"/>
+  <!-- Small input effort node (left) -->
+  <circle cx="32" cy="78" r="7" fill="#F59E0B"/>
+  <!-- High-leverage output block / check shield (right) -->
+  <rect x="78" y="28" width="24" height="24" rx="6" fill="#0EA5E9" fill-opacity="0.18" stroke="#0EA5E9" stroke-width="4.5"/>
+  <polyline points="84,40 88.5,44.5 96,35.5" stroke="#22C55E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
