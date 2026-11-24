@@ -37,7 +37,7 @@ description: >-
 
 ## 3. 周期性独立复查（直查真实改动、原话与成品）
 - 每完成 **2~3 个阶段**、跨多文件大规模扩张后以及**最终交付前**：
-  1. 先导出本轮隔离增量、风险摘要与用户原话时间线（不可省略 `--repo` 与 `--baseline`）：
+  1. 先导出本轮隔离增量、风险摘要与用户原话时间线（未提交改动用 `--baseline`，已提交区间用 `--range <base>..<head>`）：
      ```bash
      python3 ~/.gemini/config/plugins/dev-leverage/scripts/diff_baseline.py report \
        --repo <repo_path> \
@@ -47,7 +47,7 @@ description: >-
      python3 ~/.gemini/config/plugins/dev-leverage/scripts/context_tools.py handoff \
        --transcript <transcript_path> --user-only --out <scratch_dir>/user-intent.md
      ```
-  2. 调用 `invoke_subagent(TypeName="drift-watcher", Model="flash", ...)`（重大里程碑或最终交付前改用 `Model="inherit"`），把**三份原始证据**一并交给它直查：① `current-report.md` + `current.diff`（真实 Git 增量）；② `user-intent.md`（用户原话）；③ 原始输入样本、真实终稿产物、`stderr` 日志与外部参照基线。由其独立核查分桶集中度/漏报并抽查 3~5 条溯源，产出 ≤1 屏人工决策卡。
+  2. 调用 `invoke_subagent(TypeName="drift-watcher", Model="inherit", ...)`（Mode A；仅极轻量的中期进度抽查可用 `Model="flash"`），把**三份原始证据**一并交给它直查：① `current-report.md` + `current.diff`（真实 Git 增量）；② `user-intent.md`（用户原话）；③ 原始输入样本、真实终稿产物、`stderr` 日志与外部参照基线。由其通过打包只读脚本核查分桶分布/漏报并抽查 3~5 条溯源，输出置顶决策卡与结论。
 - 收到 `drift-watcher` 结论后：
   - `Aligned`：继续推进。
   - `Mild Drift`：按具体偏离与漏报点纠偏并更新状态记录，再继续。

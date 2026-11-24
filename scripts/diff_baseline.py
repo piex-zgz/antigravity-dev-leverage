@@ -4,8 +4,8 @@
 Usage:
   diff_baseline.py snapshot --repo <repo_dir> --out <baseline.json>
   diff_baseline.py report --repo <repo_dir> [--baseline <baseline.json>] \
-      [--files f1 f2 ...] [--write-diff <diff.patch>] [--write-report <report.md>] \
-      [--format json|markdown]
+      [--range <base>..<head>] [--files f1 f2 ...] [--write-diff <diff.patch>] \
+      [--write-report <report.md>] [--format json|markdown]
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from typing import Any
 
 UNTRACKED_DIFF_CAP = 60_000
 LARGE_FILE_JUMP_LOC = 150
+REPO_FILE_INDEX_CAP = 100
 NON_CODE_SURFACE_EXTS = {".md", ".rst", ".txt", ".adoc", ".json", ".jsonl", ".csv", ".tsv", ".xml", ".svg", ".html"}
 
 TEST_PATH_RE = re.compile(
@@ -168,6 +169,62 @@ def committed_files_since(repo: Path, base_head: str, cur_head: str) -> list[str
     if code != 0:
         return []
     return [line.strip() for line in out.splitlines() if line.strip()]
+
+
+def collect_repo_file_index(
+    repo: Path, changed: list[str], cap: int = REPO_FILE_INDEX_CAP
+) -> dict[str, Any]:
+    """Return compact tracked file index so reviewers see exact test/sibling paths without guessing."""
+    code, out = run_git(repo, ["ls-files"])
+    if code != 0:
+        return {"total_tracked": 0, "shown_count": 0, "truncated": False, "files": []}
+    tracked = sorted(line.strip() for line in out.splitlines() if line.strip())
+    total = len(tracked)
+    if total <= cap:
+        return {"total_tracked": total, "shown_count": total, "truncated": False, "files": tracked}
+
+    changed_dirs = {str(Path(p).parent) for p in changed}
+    prioritized: list[str] = []
+    seen: set[str] = set()
+    # Priority 1: test files; Priority 2: siblings in touched directories; Priority 3: root/config files.
+    buckets = (
+        [p for p in tracked if is_test_path(p)],
+        [p for p in tracked if str(Path(p).parent) in changed_dirs],
+        [p for p in tracked if "/" not in p],
+    )
+    for bucket in buckets:
+        for p in bucket:
+            if p not in seen:
+                seen.add(p)
+                prioritized.append(p)
+                if len(prioritized) >= cap:
+                    break
+        if len(prioritized) >= cap:
+            break
+    prioritized.sort()
+    return {
+        "total_tracked": total,
+        "shown_count": len(prioritized),
+        "truncated": len(prioritized) < total,
+        "files": prioritized,
+    }
+
+
+def committed_range_status(repo: Path, commit_range: str) -> tuple[bool, dict[str, str]]:
+    """Return (ok, {rel_path: status_code}) for a committed git range like A..B or A...B."""
+    code, out = run_git(repo, ["diff", "--no-renames", "--name-status", commit_range])
+    if code != 0:
+        return False, {}
+    statuses: dict[str, str] = {}
+    for line in out.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 2:
+            continue
+        st = parts[0].strip()
+        rel = parts[1].strip()
+        if rel:
+            statuses[rel] = st
+    return True, statuses
 
 
 def numstat_for_files(
@@ -441,6 +498,7 @@ def build_report(
     baseline_path: Path | None,
     explicit_files: list[str] | None,
     write_diff: Path | None,
+    commit_range: str | None = None,
 ) -> dict[str, Any]:
     repo = repo.resolve()
     if not is_git_repo(repo):
@@ -461,10 +519,47 @@ def build_report(
     committed_during_session: list[str] = []
     excluded_baseline_files: list[str] = []
     excluded_sensitive_files: list[str] = []
+    range_statuses: dict[str, str] = {}
+    active_porcelain = current_porcelain
 
-    if explicit_files:
+    if commit_range:
+        norm_range = commit_range.strip()
+        if ".." not in norm_range:
+            norm_range = f"{norm_range}..HEAD"
+        ok_range, range_statuses = committed_range_status(repo, norm_range)
+        if not ok_range:
+            return {
+                "repo": str(repo),
+                "is_git_repo": True,
+                "isolation_mode": "invalid_range",
+                "diff_base_ref": norm_range,
+                "error": f"Invalid git commit range: {norm_range}",
+                "changed_files": [],
+            }
+        diff_base_ref = norm_range
+        active_porcelain = {}
+        preexisting_excluded = len(current_porcelain)
+        range_changed = sorted(range_statuses.keys())
+        if explicit_files:
+            norm_files: list[str] = []
+            for f in explicit_files:
+                fp = Path(f)
+                candidate = fp.resolve() if fp.is_absolute() else (repo / fp).resolve()
+                try:
+                    norm_files.append(str(candidate.relative_to(repo)))
+                except ValueError:
+                    norm_files.append(os.path.normpath(f))
+            changed = sorted(set(norm_files))
+            excluded_baseline_files = sorted(set(range_changed) - set(changed))
+            excluded_sensitive_files = [p for p in excluded_baseline_files if is_sensitive_path(p)]
+            isolation_mode = "commit_range_explicit_files" if excluded_baseline_files else "commit_range"
+        else:
+            changed = range_changed
+            isolation_mode = "commit_range"
+        committed_during_session = list(changed)
+    elif explicit_files:
         isolation_mode = "explicit_files"
-        norm_files: list[str] = []
+        norm_files = []
         for f in explicit_files:
             fp = Path(f)
             candidate = fp.resolve() if fp.is_absolute() else (repo / fp).resolve()
@@ -501,7 +596,7 @@ def build_report(
         isolation_mode = "full_dirty_unisolated"
         changed = sorted(current_porcelain.keys())
 
-    stats = numstat_for_files(repo, changed, current_porcelain, diff_base_ref)
+    stats = numstat_for_files(repo, changed, active_porcelain, diff_base_ref)
     total_added = sum(a for a, _ in stats.values())
     total_deleted = sum(d for _, d in stats.values())
     risk_tier, walkthrough_mode, n_modules = compute_risk_and_walkthrough(
@@ -509,11 +604,12 @@ def build_report(
     )
 
     diff_text, truncated_untracked = (
-        collect_scoped_diff(repo, changed, current_porcelain, diff_base_ref) if changed else ("", [])
+        collect_scoped_diff(repo, changed, active_porcelain, diff_base_ref) if changed else ("", [])
     )
     surface_risks = analyze_surface_risks(
-        repo, changed, stats, current_porcelain, diff_base_ref, diff_text, committed_during_session
+        repo, changed, stats, active_porcelain, diff_base_ref, diff_text, committed_during_session
     )
+    repo_file_index = collect_repo_file_index(repo, changed)
 
     diff_out_str = None
     if write_diff is not None:
@@ -541,10 +637,15 @@ def build_report(
         "recommended_walkthrough": walkthrough_mode,
         "diff_file": diff_out_str,
         "surface_risks": surface_risks,
+        "repo_file_index": repo_file_index,
         "changed_files": [
             {
                 "path": p,
-                "status": current_porcelain.get(p, "COMMITTED" if p in committed_during_session else "CLEAN/REVERTED"),
+                "status": (
+                    range_statuses.get(p, "COMMITTED")
+                    if commit_range
+                    else current_porcelain.get(p, "COMMITTED" if p in committed_during_session else "CLEAN/REVERTED")
+                ),
                 "added": stats.get(p, (0, 0))[0],
                 "deleted": stats.get(p, (0, 0))[1],
             }
@@ -556,6 +657,8 @@ def build_report(
 def format_markdown(rep: dict[str, Any]) -> str:
     if not rep.get("is_git_repo", True):
         return f"- Repo: `{rep['repo']}` (`non_git`)\n- Note: {rep.get('note', '')}"
+    if rep.get("isolation_mode") == "invalid_range":
+        return f"- Repo: `{rep['repo']}` (`invalid_range`)\n- Error: {rep.get('error', '')}"
     lines = [
         f"### Scoped Diff Baseline Report (`{Path(rep['repo']).name}`)",
         f"- **Isolation Mode**: `{rep['isolation_mode']}` (base ref `{rep['diff_base_ref']}`, excluded {rep['preexisting_dirty_excluded']} pre-existing dirty files out of {rep['total_repo_dirty']})",
@@ -639,6 +742,24 @@ def format_markdown(rep: dict[str, Any]) -> str:
             lines.append(f"| ... (+{len(rep['changed_files']) - 30} more) | | | |")
     else:
         lines.append("- **Scoped Changes**: None")
+
+    fidx = rep.get("repo_file_index") or {}
+    idx_files = fidx.get("files") or []
+    if idx_files:
+        total_tr = fidx.get("total_tracked", len(idx_files))
+        header_note = (
+            f"showing {len(idx_files)} of {total_tr} tracked files (tests & touched dirs prioritized)"
+            if fidx.get("truncated")
+            else f"{total_tr} tracked files"
+        )
+        lines.append(f"\n#### Repo File Index ({header_note})")
+        by_dir: dict[str, list[str]] = {}
+        for rel in idx_files:
+            parent = str(Path(rel).parent)
+            key = "." if parent in ("", ".") else f"{parent}/"
+            by_dir.setdefault(key, []).append(Path(rel).name)
+        for d, names in sorted(by_dir.items()):
+            lines.append(f"- `{d}`: " + ", ".join(f"`{n}`" for n in names))
     return "\n".join(lines)
 
 
@@ -653,6 +774,7 @@ def main() -> int:
     p_rep = sub.add_parser("report", help="Compare current repo state against baseline")
     p_rep.add_argument("--repo", required=True)
     p_rep.add_argument("--baseline", default=None)
+    p_rep.add_argument("--range", dest="commit_range", default=None, help="Committed git range, e.g. A..B or HEAD~3")
     p_rep.add_argument("--files", nargs="*", default=None)
     p_rep.add_argument("--write-diff", default=None)
     p_rep.add_argument("--write-report", default=None)
@@ -676,6 +798,7 @@ def main() -> int:
         baseline_path=Path(args.baseline) if args.baseline else None,
         explicit_files=args.files,
         write_diff=Path(args.write_diff) if args.write_diff else None,
+        commit_range=args.commit_range,
     )
     rendered = json.dumps(rep, ensure_ascii=False, indent=2) if args.format == "json" else format_markdown(rep)
     if args.write_report:
@@ -683,7 +806,7 @@ def main() -> int:
         rp.parent.mkdir(parents=True, exist_ok=True)
         rp.write_text(rendered + "\n", encoding="utf-8")
     print(rendered)
-    return 0
+    return 2 if rep.get("isolation_mode") == "invalid_range" else 0
 
 
 if __name__ == "__main__":

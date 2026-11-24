@@ -15,7 +15,7 @@ description: >-
 
 ### 1. 先选对调查主体（禁止在已压缩长会话里凭记忆自审）
 - **未压缩短任务（`G == 0` 且无重大返工）**：直接基于本轮 `git diff` 与 `.system_generated/logs/transcript_full.jsonl`（若无则回退 `transcript.jsonl`）做轻量复盘。
-- **已压缩会话（`G >= 1`）或重大多阶段任务**：**禁止主代理凭记忆自审**——直接委派零历史只读子代理（如 `drift-watcher`，`Model="inherit"`），把原始指针（`transcript_full.jsonl` 路径、目标仓库路径、基线或提交区间）交给它，独立核查原始失败记录、`git log --numstat`、审稿结论与 Hook/任务日志，不另导 `handoff.md`。
+- **已压缩会话（`G >= 1`）或重大多阶段任务**：**禁止主代理凭记忆自审**——直接委派 `drift-watcher`（**Mode B**，`Model="inherit"`），把原始指针（`transcript_full.jsonl` 路径、目标仓库路径、基线或提交区间）交给它，独立核查原始失败记录、`git log --numstat`、审稿结论与 Hook/任务日志，不另导 `handoff.md`。
 
 ### 2. 先审旧债，再追真因（既有规则一票否决）
 不要预设“踩坑 = 少写了一条文档规矩”，对每个反复出现的痛点必须先做两步核对：

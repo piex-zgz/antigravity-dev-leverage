@@ -135,6 +135,49 @@ class DiffBaselineHardeningTests(unittest.TestCase):
         self.assertEqual(rep2["changed_files"][0]["path"], "docs.md")
         self.assertEqual(rep2["excluded_sensitive_files"], ["tests/test_app.py"])
 
+    def test_commit_range_ignores_dirty_tree_and_emits_repo_file_index(self) -> None:
+        base_sha = subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        (self.repo / "src" / "new_mod.py").write_text("def handle_range():\n    return 42\n", encoding="utf-8")
+        (self.repo / "src" / "app.py").write_text("def existing():\n    return 99\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(self.repo), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(self.repo), "commit", "-q", "-m", "feat range"], check=True)
+
+        # Dirty working tree + untracked file must NOT bleed into --range report.
+        (self.repo / "tests" / "test_app.py").write_text("def test_dirty():\n    assert False\n", encoding="utf-8")
+        (self.repo / "untracked_noise.py").write_text("x = 1\n", encoding="utf-8")
+
+        diff_out = self.root / "range.diff"
+        rep = diff_baseline.build_report(self.repo, None, None, diff_out, commit_range=f"{base_sha}..HEAD")
+        self.assertEqual(rep["isolation_mode"], "commit_range")
+        self.assertEqual([c["path"] for c in rep["changed_files"]], ["src/app.py", "src/new_mod.py"])
+        self.assertEqual(rep["surface_risks"]["new_files"], [{"path": "src/new_mod.py", "added": 2}])
+        self.assertIn("handle_range", diff_out.read_text(encoding="utf-8"))
+        self.assertNotIn("untracked_noise", diff_out.read_text(encoding="utf-8"))
+        self.assertEqual(rep["repo_file_index"]["total_tracked"], 3)
+        self.assertIn("tests/test_app.py", rep["repo_file_index"]["files"])
+        md = diff_baseline.format_markdown(rep)
+        self.assertIn("#### Repo File Index (3 tracked files)", md)
+        self.assertIn("`tests/`: `test_app.py`", md)
+
+        # Single ref normalizes to <ref>..HEAD; invalid range returns exit code 2 via CLI.
+        rep_single = diff_baseline.build_report(self.repo, None, None, None, commit_range=base_sha)
+        self.assertEqual(rep_single["diff_base_ref"], f"{base_sha}..HEAD")
+        self.assertEqual(rep_single["scoped_file_count"], 2)
+
+        bad = subprocess.run(
+            [sys.executable, "-I", str(SCRIPTS_DIR / "diff_baseline.py"), "report", "--repo", str(self.repo), "--range", "no_such_ref..HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(bad.returncode, 2)
+        self.assertIn("invalid_range", bad.stdout)
+
 
 class ContextToolsTests(unittest.TestCase):
     def setUp(self) -> None:

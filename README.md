@@ -45,7 +45,7 @@ git clone https://github.com/piex-zgz/antigravity-dev-leverage.git ~/.gemini/con
 ## 组件一览
 
 ### 1. 常驻极简规则（`rules/AGENTS.md`）
-严控 ≤ 26 行（当前 21 行）：先探清再施工、抗熵增、外循环进出留存核对、独立诚实与漏报清单、四段式交还格式，并显式限定子代理委派仅由主代理执行。
+严控 ≤ 26 行（当前 25 行）：先探清再施工、优先复用与删减、输入输出对账、独立诚实与大白话汇报、四段式交还格式，以及主代理编排与复用子代理边界。
 
 ### 2. 确定性生命周期 Hooks（`hooks.json`）
 - **首轮上下文初始化（`PreInvocation` → `hooks/session_start.py`）**：仅对主会话首次调用生效（对子代理零 I/O、零注入）。自动探测工作区内的项目记忆入口（`AGENTS.md`、`GEMINI.md`、`.agents/rules/`、`CURRENT_WORK.md`），只注入路径指针，并为工作区 Git 仓库记录初始改动基线。
@@ -55,7 +55,7 @@ git clone https://github.com/piex-zgz/antigravity-dev-leverage.git ~/.gemini/con
 
 ### 3. 确定性脚本（`scripts/`）
 - **`scripts/context_tools.py`**：增量会话体检（`health`）与零改写确定性交接导出（`handoff`，默认读取完整 `transcript_full.jsonl`、按 `(line_no, step_index)` 锚定、去 URL query 参数并做密钥脱敏，支持 `--user-only` 为审稿人导出不可伪造的用户原话锚点）。
-- **`scripts/diff_baseline.py`**：在脏仓库中隔离本轮改动集与风险分档，封堵 `--files` 静默覆盖基线与大新文件静默截断，自动折叠零配置、跨语言的「Surface & Risk Summary」（新文件、大增幅、测试/配置/Hook 触碰、断言净减少或新增 `skip`/`xfail`、新增 CLI/公开定义/环境变量）。
+- **`scripts/diff_baseline.py`**：在脏仓库中隔离本轮改动集与风险分档（支持 `--baseline`、`--range <base>..<head>` 与 `--files`），封堵 `--files` 静默覆盖基线与大新文件静默截断，自动输出「Surface & Risk Summary」与紧凑 `Repo File Index`（仓库文件清单）。
 - **`scripts/codex_worker.py`**：本地 Codex 编码执行器（`start` / `watch` / `status` / `resume` / `stop`）。默认构建干净独立 `CODEX_HOME`，持久化 `thread_id` 支持 `resume` 续聊，`watch` 仅按活跃度异常唤醒不盲杀。
 - **`scripts/doc_style_check.py`**：扫描 Markdown 文档中的自我辩白/元叙述与套话句式。
 
@@ -68,8 +68,8 @@ git clone https://github.com/piex-zgz/antigravity-dev-leverage.git ~/.gemini/con
 - **`orchestrate`**：极薄编排选型（单子代理 vs `/teamwork` vs `/swarm` vs `codex_worker.py`）与调研赛马流程。
 
 ### 5. 独立只读审稿子代理（`agents/`）
-- **`entropy-reviewer`**（`tools: [read_file]`）：专注**减法/熵增、新增表面与用户原话对齐、项目规则符合度与文档信源审查**。
-- **`drift-watcher`**（`tools: [read_file, run_command]`，严格只读约束）：**零历史实证探针与外部真相审稿人**——直查三大不可伪造锚点（Git 基线表面、用户原话时间线、真实原始输入与端到端成品），主动做分桶集中度/尾部覆盖检查与 3~5 条样本原样溯源，输出 ≤1 屏人工决策卡。
+- **`entropy-reviewer`**（`tools: [read_file, run_command]`，严格只读约束）：主力代码与文档审稿人——负责**逻辑/并发/安全与脱敏漏洞、减法与冗余治理、仓规/测试诚实度**，以及**陌生读者视角去黑话与防晕字审查**；修完复核优先用 `send_message` 复用原代理。
+- **`drift-watcher`**（`tools: [read_file, run_command]`，严格只读约束）：外部真值与复盘核查员——**Mode A** 用打包只读脚本直查原始日志、外部基线、真实终稿分布与用户原话（抽 3~5 条溯源，查漏报与过度删减）；**Mode B** 负责已压缩长会话的独立复盘（`rsi-retro`）。
 
 ---
 
