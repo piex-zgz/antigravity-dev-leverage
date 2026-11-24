@@ -548,7 +548,7 @@ def export_handoff(
 
     lines: list[str] = []
     if user_only:
-        lines.append("# Verbatim User Intent Timeline (Channel A — Unforgeable Anchor)")
+        lines.append("# Verbatim User Intent Timeline (Raw Extract)")
         lines.append(f"- **Source**: `{src}` ({total_lines} lines, {len(user_entries)} user turns)")
         lines.append("")
         for entry in user_entries:
@@ -558,7 +558,7 @@ def export_handoff(
 
     health_rep, _ = inspect_health_incremental(src)
 
-    lines.append("# Deterministic Session Handoff (Channel A — Zero LLM Rewriting)")
+    lines.append("# Session Handoff (Raw Transcript Extract — Zero LLM Rewriting)")
     lines.append("")
     lines.append(f"- **Full Transcript Pointer**: `{src}` (lines `1..{total_lines}`, last `step_index={last_step_index}`)")
     lines.append(
@@ -579,7 +579,7 @@ def export_handoff(
             lines.append(f"- `(L{entry['line_no']}, step={entry['step_index']}, {entry['created_at']})` {flat}")
 
     sec += 1
-    lines.append(f"\n## {sec}. Generation / Checkpoint Page-Fault Index")
+    lines.append(f"\n## {sec}. Compaction History Index")
     if not checkpoints:
         lines.append(f"- `G0`: lines `1..{total_lines}` (no compaction)")
     else:
@@ -628,9 +628,9 @@ def export_handoff(
             lines.append(f"- ... (+{len(urls) - 25} more)")
 
     sec += 1
-    lines.append(f"\n## {sec}. New-Session Landing Instruction (Falsifiable Start)")
+    lines.append(f"\n## {sec}. New-Session First-Turn Checklist")
     lines.append(
-        "Read this Channel-A handoff and inspect the current repo files directly (page-fault exact lines from "
+        "Read this raw handoff and inspect the current repo files directly (read exact lines from "
         f"`{src}` only if a specific past detail is ambiguous). Before making broad edits, propose:\n"
         "1. **Exact next concrete diff/plan** (target files and change);\n"
         "2. **1 explicit non-goal** (what you will NOT build or change);\n"

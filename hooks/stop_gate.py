@@ -22,6 +22,8 @@ EVIDENCE_MARKERS = (
     "实证依据",
     "验证方式",
     "验证结果",
+    "测试通过",
+    "已验证",
     "未验证",
     "BLOCKED",
     "PASS WITH NOTES",
@@ -160,8 +162,8 @@ def main() -> int:
         shown += f" 等共 {len(edited)} 个文件"
 
     reason = (
-        f"[dev-leverage Stop Gate] 本轮修改了工作区文件（{shown}），但回复中缺少实证依据或验收证据摘要。"
-        "请核验本次增量改动，并在最终回复中附上精简的四要素（结论 / 实证依据 / 复用了什么与删除了什么 / 缺口与待决），再结束本轮。"
+        f"[dev-leverage 交付提醒] 本轮修改了工作区文件（{shown}），但回复里还没写验证结果。"
+        "请核验本次改动，用大白话说清四件事（结论 / 验证结果 / 复用了什么与删了什么 / 缺口与待决），底层参数和路径放括号或文末，再结束本轮。"
     )
     print(json.dumps({"decision": "continue", "reason": reason}, ensure_ascii=False))
     return 0

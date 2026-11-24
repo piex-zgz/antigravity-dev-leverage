@@ -497,7 +497,8 @@ def main() -> int:
             handoff_cmd = f'python3 "{CONTEXT_TOOL_PATH}" handoff --transcript "{transcript_path}"'
             return emit(
                 f"[dev-leverage Context Health RED] 当前会话已进入高噪音/多代压缩状态（{metrics_brief}）。"
-                f"推进下一阶段前，建议先运行 `{handoff_cmd}` 导出原话与事实交接包切换干净会话，或派 `drift-watcher` 做零历史实证探针（见 `{SKILL_PATH}`）。"
+                f"推进下一阶段前，建议先运行 `{handoff_cmd}` 导出原话与事实交接包切换干净会话，或派 `drift-watcher` 做独立复查（见 `{SKILL_PATH}`）。"
+                "向用户汇报时先用大白话说清出了什么事、改了什么、结果怎样，底层参数和路径放括号或文末。"
             )
     elif h_level == "YELLOW":
         alert_key = f"YELLOW:{g}"
@@ -517,8 +518,8 @@ def main() -> int:
         state["last_macro_step"] = total_steps
         save_state(st_path, state)
         return emit(
-            f"[dev-leverage Macro Annealing] 近期已跨 {distinct_files} 个源码文件扩张改动。"
-            f"继续叠加修改前，建议暂停核验真实端到端成品与进出留存核对，并确认边际收益未见顶（见 `{SKILL_PATH}`）。"
+            f"[dev-leverage 大范围改动提醒] 近期已跨 {distinct_files} 个源码文件改动。"
+            f"继续叠加修改前，建议暂停核验真实成品与输入输出数量对账，确认没有越改越乱（见 `{SKILL_PATH}`）。"
         )
 
     if new_health_cache.get("offset") != prev_offset:
