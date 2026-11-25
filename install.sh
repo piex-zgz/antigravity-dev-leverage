@@ -100,5 +100,5 @@ What activates automatically in your next Antigravity turn:
   - Core rules (rules/AGENTS.md, 21 lines)
   - Lifecycle hooks (session baseline snapshot, context health & rework stop-loss, stop evidence gate, codex exec guard)
   - On-demand skills (explore-first, gate-verify, walkthrough, loop-anchor, rsi-retro, orchestrate)
-  - Independent read-only review subagents (entropy-reviewer, drift-watcher)
+  - Independent subagents (design-critic for pre-implementation critique/demos; entropy-reviewer & drift-watcher for read-only verification/retros)
 EOF

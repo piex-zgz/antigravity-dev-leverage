@@ -64,10 +64,11 @@ git clone https://github.com/piex-zgz/antigravity-dev-leverage.git ~/.gemini/con
 - **`gate-verify`**：基线隔离 diff + 表面风险清单 + 用户原话锚点 + 外循环进出留存核对 + 漏报清单 + 减法证据，输出 1 分钟验收证据卡。
 - **`walkthrough`**：支持精炼 Markdown、单文件 HTML，以及按需输出飞书文档（经 `lark-cli`，不可用时自动回退）。
 - **`loop-anchor`**：原生优先适配器 + 零改写交接与可证伪落点 + 零历史实证探针 + 微观/战略双重止损。
-- **`rsi-retro`**：3 步根因复盘骨架（已压缩会话强制派零历史只读子代理查原始日志；既有规则一票否决；允许输出 `0~1` 条并优先沉淀为项目确定性门禁）。
+- **`rsi-retro`**：3 步根因复盘骨架（已压缩会话强制派零历史只读子代理查原始日志；既有规则一票否决；按问题类型选落点——机械故障优先改代码/补回归测试，语义与判断问题不硬造正则或死阈值；允许输出 `0~1` 条）。
 - **`orchestrate`**：极薄编排选型（单子代理 vs `/teamwork` vs `/swarm` vs `codex_worker.py`）与调研赛马流程。
 
-### 5. 独立只读审稿子代理（`agents/`）
+### 5. 按需独立子代理（`agents/`）
+- **`design-critic`**（`tools: [read_file, write_file, edit_file, run_command, search_web]`，不改正式仓库，探索与小 Demo 隔离在 `scratch/`）：设计前期批判性伙伴——平时零存在感、按需呼出；独立查一手源码/日志、对拟删除或限制的旧机制做正反双向核账、纸上争不清时直接跑最小可扔 Demo 验真伪，并明确拦截靠限制能力或死阈值凑数的懒解法。
 - **`entropy-reviewer`**（`tools: [read_file, run_command]`，严格只读约束）：主力代码与文档审稿人——负责**逻辑/并发/安全与脱敏漏洞、减法与冗余治理、仓规/测试诚实度**，以及**陌生读者视角去黑话与防晕字审查**；修完复核优先用 `send_message` 复用原代理。
 - **`drift-watcher`**（`tools: [read_file, run_command]`，严格只读约束）：外部真值与复盘核查员——**Mode A** 用打包只读脚本直查原始日志、外部基线、真实终稿分布与用户原话（抽 3~5 条溯源，查漏报与过度删减）；**Mode B** 负责已压缩长会话的独立复盘（`rsi-retro`）。
 
